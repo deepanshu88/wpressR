@@ -1,0 +1,150 @@
+# Base function for the WordPress API
+wp_api_request <- function(method, wp_site, endpoint, wp_header, data = NULL) {
+  api_url <- paste0(wp_site, endpoint)
+  
+  response <- switch(method,
+                     GET = GET(api_url, wp_header, content_type_json()),
+                     POST = POST(api_url, wp_header, body = toJSON(data, auto_unbox = TRUE), encode = "json", content_type_json()),
+                     PUT = PUT(api_url, wp_header, body = toJSON(data, auto_unbox = TRUE), encode = "json", content_type_json()),
+                     DELETE = DELETE(api_url, wp_header, content_type_json())
+  )
+  
+  return(response)
+}
+
+# Function to GET a page or post
+get_content <- function(id = NULL, wp_site, wp_header, content_type = "posts") {
+  
+  if (is.null(id)) {
+    # Fetch all posts or pages if ID is NULL
+    endpoint <- paste0("/wp-json/wp/v2/", content_type)
+  } else {
+    # Fetch specific post or page if ID is provided
+    endpoint <- paste0("/wp-json/wp/v2/", content_type, "/", id)
+  }
+  
+  response <- wp_api_request("GET", wp_site, endpoint, wp_header)
+  
+  if (status_code(response) == 200) {
+    return(content(response, "parsed", simplifyVector = TRUE))
+  } else {
+    stop(paste("Error fetching content:", status_code(response), content(response, "text")))
+  }
+}
+
+# Function to POST a new page or post
+post_content <- function(wp_site, wp_header, data, content_type = "posts") {
+  endpoint <- paste0("/wp-json/wp/v2/", content_type)  
+  response <- wp_api_request("POST", wp_site, endpoint, wp_header, data)
+  
+  if (status_code(response) == 201) {
+    return(content(response, "parsed", simplifyVector = TRUE))
+  } else {
+    stop(paste("Error creating content:", status_code(response), content(response, "text")))
+  }
+}
+
+# Function to PUT (update) a page or post
+modify_content <- function(id, wp_site, wp_header, data, content_type = "posts") {
+  endpoint <- paste0("/wp-json/wp/v2/", content_type, "/", id)  
+  response <- wp_api_request("PUT", wp_site, endpoint, wp_header, data)
+  
+  if (status_code(response) == 200) {
+    return(content(response, "parsed", simplifyVector = TRUE))
+  } else {
+    stop(paste("Error updating content:", status_code(response), content(response, "text")))
+  }
+}
+
+# Function to DELETE a page or post
+delete_content <- function(id, wp_site, wp_header, content_type = "posts") {
+  endpoint <- paste0("/wp-json/wp/v2/", content_type, "/", id)  
+  response <- wp_api_request("DELETE", wp_site, endpoint, wp_header)
+  
+  if (status_code(response) == 200) {
+    return(content(response, "parsed", simplifyVector = TRUE))
+  } else {
+    stop(paste("Error deleting content:", status_code(response), content(response, "text")))
+  }
+}
+
+# Function to fetch no. of posts with pagination
+get_content_pagination <- function(wp_site) {
+  
+  api_url <- paste0(wp_site, "/wp-json/wp/v2/posts?page=1&per_page=100")
+  response <- GET(api_url)
+  
+  # Get total pages from response headers
+  pages_count <- headers(response)[['X-WP-TotalPages']]
+  total_pages <- as.numeric(pages_count)
+  
+  current_page <- 1
+  all_page_items_json <- list()  # Initialize an empty list to store all posts
+  
+  while (current_page <= total_pages) {
+    api_url <- paste0(wp_site, "/wp-json/wp/v2/posts?page=", current_page, "&per_page=100")
+    page_items <- GET(api_url)
+    page_items_json <- content(page_items, "parsed", simplifyVector = TRUE)
+    
+    # Append the current page's items to the list
+    all_page_items_json <- c(all_page_items_json, page_items_json)
+    current_page <- current_page + 1
+  }
+  
+  return(all_page_items_json)
+}
+
+# Function to upload an image from local drive to WordPress
+upload_media <- function(image_path, wp_site, wp_header) {
+  # Prepare the API endpoint for media uploads
+  api_url <- paste0(wp_site, "/wp-json/wp/v2/media")
+  
+  # Open the image file from the local drive
+  image_file <- upload_file(image_path)
+  
+  # Set the filename in the Content-Disposition header
+  filename <- basename(image_path)
+  wp_header <- c(wp_header, add_headers(`Content-Disposition` = paste0('attachment; filename="', filename, '"')))
+  
+  # Send the POST request to upload the image
+  response <- POST(api_url, wp_header, body = list(file = image_file), encode = "multipart")
+  
+  if (status_code(response) == 201) {  # Status 201 means created
+    print("Image uploaded successfully.")
+    return(content(response, "parsed", simplifyVector = TRUE))
+  } else {
+    stop(paste("Error uploading image:", status_code(response), content(response, "text")))
+  }
+}
+
+# Function to get a list of media items from WordPress
+get_media <- function(wp_site, wp_header, per_page = 10, page = 1) {
+  # Prepare the API endpoint for fetching media items
+  api_url <- paste0(wp_site, "/wp-json/wp/v2/media?per_page=", per_page, "&page=", page)
+  
+  # Send the GET request to retrieve media items
+  response <- GET(api_url, wp_header, content_type_json())
+  
+  if (status_code(response) == 200) {
+    media_items <- content(response, "parsed", simplifyVector = TRUE)
+    return(media_items)
+  } else {
+    stop(paste("Error fetching media items:", status_code(response), content(response, "text")))
+  }
+}
+
+# Function to delete media by ID in WordPress
+delete_media <- function(media_id, wp_site, wp_header, force = TRUE) {
+  # Prepare the API endpoint for deleting media
+  api_url <- paste0(wp_site, "/wp-json/wp/v2/media/", media_id, "?force=", tolower(as.character(force)))
+  
+  # Send the DELETE request to remove the media
+  response <- DELETE(api_url, wp_header, content_type_json())
+  
+  if (status_code(response) == 200) {
+    print("Media deleted successfully.")
+    return(content(response, "parsed", simplifyVector = TRUE))
+  } else {
+    stop(paste("Error deleting media:", status_code(response), content(response, "text")))
+  }
+}

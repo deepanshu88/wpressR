@@ -1,0 +1,131 @@
+library(wpressR)
+library(base64enc)
+
+# Set up your WordPress credentials and API endpoint
+wp_site <- "https://hotpink-mink-123289.hostingersite.com"
+wp_username <- "deepanshu88us@gmail.com"
+wp_password <- "T24H fYGo Mfbb rlJu AtPB Cx6Z"  # Application_Password
+
+# Create the authorization token
+wp_credentials <- paste0(wp_username, ":", wp_password)
+wp_token  <-  base64encode(charToRaw(wp_credentials))
+wp_header <-  add_headers(Authorization = paste("Basic", wp_token))
+
+# -----------------------------------
+# Get Information of posts
+# -----------------------------------
+all_posts <- get_content(wp_site = wp_site,
+                         wp_header = wp_header,
+                         content_type = "posts")
+
+# Specific Post
+page_id <- 360
+page_data <- get_content(page_id,
+                            wp_site,
+                            wp_header = wp_header,
+                            content_type = "posts")
+
+
+# To handle issue of API returning a maximum of 100 posts per page
+all_posts2 <- get_content_pagination(wp_site, wp_header = wp_header)
+
+# For pages
+all_pages <- get_content(wp_site = wp_site,
+                         wp_header = wp_header,
+                         content_type = "pages")
+
+all_pages2 <- get_content_pagination(wp_site,
+                                     wp_header = wp_header,
+                                     content_type = "pages")
+
+page_id <- 699
+page_data <- get_content(page_id,
+                            wp_site,
+                            wp_header = wp_header,
+                            content_type = "pages")
+
+
+# -----------------------------------
+# Create a new post
+# -----------------------------------
+new_post <- list(
+  title = "New Post Title",
+  content = "This is the content of the new post.",
+  status = "publish"
+)
+
+created_post <- post_content(wp_site = wp_site,
+                                wp_header = wp_header,
+                                data = new_post,
+                                content_type = "posts")
+# Create a new page
+new_page <- list(
+  title = "New Page Title",
+  content = "This is the content of the new page.",
+  status = "publish"
+)
+
+created_page <- post_content(wp_site = wp_site,
+                                wp_header = wp_header,
+                                data = new_page,
+                                content_type = "pages")
+
+# -----------------------------------
+# Update a page or post
+# -----------------------------------
+updated_data <- list(
+  title = "Updated Title2",
+  content = "This is the updated content 2."
+)
+
+# For posts
+page_id <- created_post$id
+updated_post <- modify_content(page_id,
+                               wp_site,
+                               wp_header = wp_header,
+                               data = updated_data,
+                               content_type = "posts")
+# For pages
+page_id <- created_page$id
+updated_page <- modify_content(page_id,
+                               wp_site,
+                               wp_header = wp_header,
+                               data = updated_data,
+                               content_type = "pages")
+
+# -----------------------------------
+# Delete a page or post
+# -----------------------------------
+page_id <- created_post$id
+delete_response <- delete_content(page_id,
+                                     wp_site,
+                                     wp_header = wp_header,
+                                     content_type = "posts")  # For posts
+
+page_id <- created_page$id
+delete_response <- delete_content(page_id,
+                                     wp_site,
+                                     wp_header = wp_header,
+                                     content_type = "pages")  # For pages
+
+# -----------------------------------
+# Media Library Details
+# -----------------------------------
+
+media_items <- get_media(wp_site, wp_header = wp_header,
+                         per_page = 30, page = 1)
+
+# Delete image
+for (media_id in media_items$id) {
+  deleted_media <- delete_media(media_id,
+                                   wp_site,
+                                   wp_header = wp_header,
+                                   force = TRUE)
+}
+
+# -----------------------------------
+# Upload image
+# -----------------------------------
+
+image_path <- "C:/Users/deepa/Downloads/NVDA.png"
+uploaded_image <- upload_media(image_path, wp_site, wp_header = wp_header)

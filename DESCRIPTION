@@ -1,0 +1,19 @@
+Package: wpressR
+Type: Package
+Title: WordPress API using R
+Version: 0.1.0
+Author: person("Deepanshu","Bhalla",email="deepanshu88.us@gmail.com",role=c("aut"),comment="Original creator")
+Maintainer: Deepanshu Bhalla <deepanshu88.us@gmail.com>
+Description: Working with the WordPress API in R
+License: MIT
+Depends:
+    R (>= 4.0.0),
+    httr,
+    jsonlite
+Imports: 
+    dplyr
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+URL: https://github.com/deepanshu88/wpressR/
+BugReports: https://github.com/deepanshu88/wpressR/issues/
+RoxygenNote: 7.2.3
