@@ -16,3 +16,5 @@ You can install the released version of wpressR from
 # install.packages("remotes")
 remotes::install_github("deepanshu88/wpressR")
 ```
+
+[Guide : How to Use WordPress using R](https://www.listendata.com/2024/09/how-to-manage-wordpress-from-r.html)
